@@ -1,9 +1,11 @@
 import express from 'express';
-import db from './database/connection';
+import ClassesController from './controllers/ClassesController';
+import ConnectionsController from './controllers/ConnnectionsController';
 
-import convertHourToMinutes from './util/convertHourToMinutes';
 
 const routes = express.Router();
+const classesControllers = new ClassesController();
+const connectionsController = new ConnectionsController();
 
 interface ScheduleItem {
     week_day: number;
@@ -11,59 +13,10 @@ interface ScheduleItem {
     to: string;
 }
 
-routes.post('/classes', async (req, res, next) => {
-    const {
-        name,
-        avatar,
-        whatsapp,
-        bio,
-        subject,
-        cost,
-        schedule
-    } = req.body;
+routes.get('/classes', classesControllers.index);
+routes.post('/classes', classesControllers.create);
 
-    const trx = await db.transaction()
-
-    try {
-        const insertedUsersIds = await trx('users').insert({
-            name,
-            avatar,
-            whatsapp,
-            bio
-        });
-    
-        const user_id = insertedUsersIds[0]
-    
-        const instertedClassesIds = await trx('classes').insert({
-            subject,
-            cost,
-            user_id,
-        })
-    
-        const class_id = instertedClassesIds[0];
-    
-        const classSchedule = schedule.map((scheduleItem: ScheduleItem) => {
-            return {
-                class_id,
-                week_day: scheduleItem.week_day,
-                from: convertHourToMinutes(scheduleItem.from),
-                to: convertHourToMinutes(scheduleItem.to)
-            };
-        })
-    
-        await trx('class_schedule').insert(classSchedule);
-    
-    
-        await trx.commit();
-    
-         
-    
-        return res.status(201).send();
-    } catch (err) {
-        await trx.rollback();
-
-        return res.status(400).json({message: 'Unexpected error while creating new class'})
-    }
-})
+routes.get('/connections', connectionsController.index)
+routes.post('/connections', connectionsController.create)
 
 export default routes;
